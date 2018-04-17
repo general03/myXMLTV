@@ -8,9 +8,12 @@ from lxml import etree
 def b_decorate(func):
     def func_wrapper(self, sentence):
         sentenceFormatted = ''
-        for word in self.keyword:
-            sentenceFormatted += sentence.lower().replace(word, "<b>"+word+"</b>")
-        return sentenceFormatted
+        if self.keyword:
+            for word in self.keyword:
+                sentenceFormatted += sentence.lower().replace(word, "<b>"+word+"</b>")
+            return sentenceFormatted
+        else:
+            return sentence
     return func_wrapper
 
 
@@ -32,13 +35,15 @@ class myXMLTV:
         # locale.setlocale(locale.LC_ALL, 'fr_FR.UTF-8')
         # Keyword to search, first argument separated by special character
         self.keyword = None
-        if(len(sys.argv) == 2):
-            self.keyword = sys.argv[1].lower().split(self.SEPARATOR)
+        if(len(sys.argv) >= 2):
+            self.keyword = sys.argv[1].decode('latin-1').lower().split(self.SEPARATOR)
+            self.keyword = map(lambda word: word.strip(), self.keyword)
 
         # Channel to search, second argument separated by special character 
         self.channel = None
         if(len(sys.argv) == 3):
-            self.channel = sys.argv[2].lower().split(self.SEPARATOR)
+            self.channel = sys.argv[2].decode('latin-1').lower().split(self.SEPARATOR)
+            self.channel = map(lambda ch: ch.strip(), self.channel)
 
     def scan(self):
         print('Scanning tv guide ...')
@@ -54,27 +59,30 @@ class myXMLTV:
             movie = {}
             self.founded = False
 
-            matchChannel = self.channelXML.get(programme.get("channel"))
-            if (self.channel is None or matchChannel in self.channel):
-                    movie.update({'channel': matchChannel})
-            else:
-                continue
-
             movie.update({'start': programme.get("start")})
             movie.update({'end': programme.get("stop")})
 
             for child in programme.getchildren():
                 if(child.tag in ('title', 'sub-title', 'desc', 'date')):
-                    if (self.keyword is None or any(x in child.text.lower() for x in self.keyword)):
+                    if (self.keyword is None or (self.keyword is not None and any(x in child.text.lower() for x in self.keyword))):
                         movie.update({child.tag: child.text})
                         self.founded = True
-
+                        
                 if child.tag == 'icon':
                     movie.update({child.tag: child.get('src')})
 
                 if child.tag == 'length':
                     movie.update({child.tag: child.text + ' ' + child.get('units')})
 
+            matchChannel = self.channelXML.get(programme.get("channel"))
+
+            if (self.channel is not None and self.founded is True and matchChannel in self.channel):
+                movie.update({'channel': matchChannel})
+            elif (self.channel is None):
+                movie.update({'channel': matchChannel})
+            else:
+                self.founded = False
+            
             if(self.founded):
                 self.result.append(movie)
 
@@ -93,7 +101,7 @@ class myXMLTV:
 
     def display ( self, data ):
         htmlContent = '<table>'
-        for programme in data:         
+        for programme in data:   
             htmlContent += '<tr><td> <img src="' + programme.get('icon', 'http://via.placeholder.com/250x150?text=Pas+d+image') + '" width="250px" > </td>'
             htmlContent += '<td>' + self.get_img_channel(programme.get('channel', None))
             htmlContent += '<span>' + parse(programme.get('start', '')).strftime(self.FORMAT_DATE_OUT) + ' (' + programme.get('length', '') + ')</span> <br />'
