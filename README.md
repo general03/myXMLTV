@@ -12,17 +12,18 @@ AND
 
 and a html file will be created where the script is executed.
 
-The **keywords** and **channels** are not case sensitive.
-The comma separator for **keywords** and **channels** is OR operator.
+The **keywords** and **channels** _are not case sensitive_.
+
+The comma separator for **keywords** and **channels** is _OR operator_.
 
 # Example
 ```channel.py hitler```
 
 ```channel.py hitler "paris première"```
 
-```channel.py hitler "paris première, paris première"``` ko
+```channel.py hitler "   rmc découverte,    paris première  "```
 
-```channel.py hitler,allemagne "paris première, paris première"``` ko
+```channel.py hitler,allemagne "rmc découverte,paris première"```
 
 ```channel.py évêque,religion```
 
